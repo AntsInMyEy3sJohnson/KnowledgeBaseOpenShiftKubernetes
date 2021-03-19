@@ -18,6 +18,13 @@
 * Within the same namespace, the service name can be used to call the pods identified by the service object's label selectors
 * Caution: A service object with is cluster IP doesn't yet expose pods to outside of the cluster -- it only makes them reachable from within the cluster
 
+```
+$ kubectl run my-deployment --image=some/image --port=8080 -- labels="some=labels"
+$ kubectl expose deployment my-deployment
+$ kubectl get svc -o wide
+```
+
+
 ### DNS service
 * The DNS service enabling this kind of behavior is enabled by a service itself being managed by Kubernetes
 * DNS service provides DNS names for cluster IPs
@@ -56,15 +63,31 @@ Example for a simple readiness probe:
 * Neat: Service object will load-balance only to pods whose readiness check succeeded
 * This way, the service object along with a readiness check can also be used to implement graceful shutdowns
 
-## NodePort
+## External access
+
+### NodePort
 
 * If the `spec.type` field of a service object is set to `NodePort`, Kubernetes will choose a random port (or use a specific one if a port has been defined by the user) to open on all of the cluster nodes
 * All nodes then direct traffic sent to that port to the pods identified by the service object's label selector
 * A NodePort works in addition to a cluster IP, so defining a NodePort won't overwrite or replace the cluster IP
 * The NodePort can be set when creating the service object from a YML definition by means of the `spec.type` or when creating it on the fly using `kubectl expose` with `--type NodePort` specified
 
-## LoadBalancer
+### LoadBalancer
 
 * Extension of NodePort: Additionally configures the environment the cluster is running in (some kind of cloud, in most cases) to create a load balancer pointed at the cluser nodes and the given NodePort
 * To ask the cloud environment for a publicly accessible load balancer to reach the pods identified by the service object's label selectors, set the `spec.type` field to `LoadBalancer`
 * In case the cloud environment uses DNS-based load balancers, the load balancer will be accessible via a public name, otherwise, a public IP address will be assigned
+
+## Advanced stuff
+
+### Endpoints
+
+* Use case: Call service without cluster IP
+* Kubernetes creates an accompanying object for every service object -- the _endpoint_ object
+* The endpoints object encapsulates all IP addresses for that service
+* An application may therefore also query the Kubernetes API directly to look up endpoints and call them
+
+```
+$ kubectl get endpoints my-deployment --watch
+$ kubectl describe endpoints my-deployment
+```
