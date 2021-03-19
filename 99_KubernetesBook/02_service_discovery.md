@@ -62,3 +62,9 @@ Example for a simple readiness probe:
 * All nodes then direct traffic sent to that port to the pods identified by the service object's label selector
 * A NodePort works in addition to a cluster IP, so defining a NodePort won't overwrite or replace the cluster IP
 * The NodePort can be set when creating the service object from a YML definition by means of the `spec.type` or when creating it on the fly using `kubectl expose` with `--type NodePort` specified
+
+## LoadBalancer
+
+* Extension of NodePort: Additionally configures the environment the cluster is running in (some kind of cloud, in most cases) to create a load balancer pointed at the cluser nodes and the given NodePort
+* To ask the cloud environment for a publicly accessible load balancer to reach the pods identified by the service object's label selectors, set the `spec.type` field to `LoadBalancer`
+* In case the cloud environment uses DNS-based load balancers, the load balancer will be accessible via a public name, otherwise, a public IP address will be assigned
