@@ -16,6 +16,7 @@
 * Kubernetes will load-balance requests made to that IP across all pods identified by the service object's label selectors
 * The cluster IP can be given a DNS address because it is stable. Thus, clients can simply refer to the DNS entry pointing to the cluster IP, and which pod they talk to is handled for them by Kubernetes
 * Within the same namespace, the service name can be used to call the pods identified by the service object's label selectors
+* Caution: A service object with is cluster IP doesn't yet expose pods to outside of the cluster -- it only makes them reachable from within the cluster
 
 ### DNS service
 * The DNS service enabling this kind of behavior is enabled by a service itself being managed by Kubernetes
@@ -55,4 +56,9 @@ Example for a simple readiness probe:
 * Neat: Service object will load-balance only to pods whose readiness check succeeded
 * This way, the service object along with a readiness check can also be used to implement graceful shutdowns
 
+## NodePort
 
+* If the `spec.type` field of a service object is set to `NodePort`, Kubernetes will choose a random port (or use a specific one if a port has been defined by the user) to open on all of the cluster nodes
+* All nodes then direct traffic sent to that port to the pods identified by the service object's label selector
+* A NodePort works in addition to a cluster IP, so defining a NodePort won't overwrite or replace the cluster IP
+* The NodePort can be set when creating the service object from a YML definition by means of the `spec.type` or when creating it on the fly using `kubectl expose` with `--type NodePort` specified
