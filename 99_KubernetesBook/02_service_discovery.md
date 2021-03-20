@@ -91,3 +91,25 @@ Example for a simple readiness probe:
 $ kubectl get endpoints my-deployment --watch
 $ kubectl describe endpoints my-deployment
 ```
+
+* Endpoint objects great tool for new applications built to run on Kubernetes
+
+### Manual service discovery
+
+* Service objects are essentially named label selectors -- their labels identify a set of pods, and it is their task to load-balance traffic to those pods
+* Thus, one could easly query the Kubernetes API oneself to query the pods in question and then implement one's own service discovery
+
+```
+$ kubectl -n my-namespace get pod -o wide --show-labels
+$ kubectl -n my-namespace get pod -o wide --selector key1=value1,key=value2
+```
+
+* Challenge: Keep in sync the labels to be used -- service object helps solve this problem
+
+### kube-proxy
+
+* Functionality like cluster IPs is performed by _kube-proxy_, a Kubernetes component running on every node in cluster
+* For example:
+    * Kube-proxy employs the Kubernetes API server to listen for new services in cluster
+    * If a new service emerges, the kube-proxy will rewrite the set of _iptables_ on that node host so they point at one of the endpoints for that service
+    * Iptables will be rewritten whenever set of endpoints for service changes (because of pods appearing and disappearing, for example)
