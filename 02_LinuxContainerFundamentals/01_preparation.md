@@ -32,4 +32,26 @@
 * Those resolvers are more often called _dependency managers_: _yum_, _dnf_, _apt_, ...
 * In the context of a container image build, those dependency managers have to resolve the binary's dependency tree at the time of building the image
 
+### Parts of a container image
+* Governed by OCI image specification standard
+* Payload media types:
+    * Image index/_manifest.json_: Provides index of image layers
+    * Image layers encapsulate/describe a set of changes (a "delta") made to the underlying layer (which could be the base image)
+    * _config.json_: Specifies env variables, command-line arguments and some meta information about the image
+* Although an image in and of itself is used as an atomic unit, it shouldn't be understood and thought about us such because an image is really a description of layers, and each layer is, in turn, a description of changes
+
+### Image layer as set of changes
+* Each layer represents a set of changes
+* Each change set can update or delete files or add new ones
+* Resolving dependencies through package management
+* All contained binaries still rely on dynamic linking at runtime
+
+### Container image configuration
+* The image as an executable can be run by the container engine
+* To run an image, the container engine requires the _config.json_ file
+    * Image variables
+    * User options
+    * Runtime defaults
+* Image plus config.json handed to operating system kernel becomes the running container
+
 
