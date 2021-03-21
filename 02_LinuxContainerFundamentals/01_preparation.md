@@ -54,4 +54,25 @@
     * Runtime defaults
 * Image plus config.json handed to operating system kernel becomes the running container
 
+## Container registries
+ Container registries provide standardized means to find, run, share, pull, and introspect images, build new images, ...
+
+### Flexibility vs. stability on traditional hosts vs. on container hosts
+* Components to look at: OS dependencies, kernel space plus application to be run
+* On traditional host
+    * Kernel space and OS dependencies optimized for stability, application optimized for flexibility
+    * Application relies on OS-level dependencies
+    * Thus, application and updates of OS dependencies are tightly coupled -- conflict between optimization for stability of OS dependencies and optimization for flexibility of application
+* On container host
+    * Kernel space still optimized for stability, but both OS dependencies and application now encapsulated in container image
+    * Container image is optimized for flexiblity -- thus, the OS dependencies and the application it contains are, too
+    * Coupling between application and its dependencies on one hand and infrastructure on the other has thus been eliminated
+
+### Pulling an image from a registry
+
+```
+$ docker pull registryserver/namespace/repository:tag
+```
+ 
+
 
