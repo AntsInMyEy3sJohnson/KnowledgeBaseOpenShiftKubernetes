@@ -162,4 +162,33 @@ Kubernetes and OpenShift fulfil two major roles:
 * Those resources are virualizations built into OpenShift/Kubernetes to structure information, help reason about the system as a whole, and abstract away complexity, but they map to real-world infrastructure
 
 
+# Beyond the basics
 
+## Container standards
+
+### Introduction
+* _OCI_: Open Container Initiative
+* Standards for different purposes:
+    * OCI: Image specification, distribution specification, runtime specification --> Focuses on container images and registries
+    * CRI: Container Runtime Interface --> Focuses on container runtimes
+    * CNI: Container Network Interface --> Focuses on container networking
+
+### Container workflow: from image to running process
+1. OCI image specification: Build container images with whatever tool they choose
+1. Container engine takes care of creating _config.json_ and extracting images into a root file system
+1. OCI-compliant runtimes consume _config.json_ plus root file system, and instruct kernel to create a container
+
+## Container ecosystem
+
+### Minimal set of tools to build and run a container
+* OCI image specification provides standard definition for a container at rest by bundling an image plus associated metadata
+* OCI distribution specification defines standard mechanism for downloading (or "pulling") the bundle from a container registry to the host
+* Ability to extract and map OCI image bundle to local storage
+* OCI runtime specification defines the standard mechanism for running a container 
+    * Only _config.json_ and root filesystem required
+    * _runs_ as default implementation of runtime specification
+
+## What Kubernetes needs on top of that
+* CRI (Container Runtime Interface) provides a kind of a protocol for the Kubelet to communicate with the container engine 
+* _gRPC_ as a server to communicate with CRI
+* _cri-ctl_ as a tool that can list images, view running containers etc. in order for human users to interface with the gRPC server for debugging and troubleshooting
