@@ -74,5 +74,59 @@
 $ docker pull registryserver/namespace/repository:tag
 ```
  
+## Container hosts
+
+### Introduction
+* Containers are Linux (or Windows) processes, so containers don't run _on_ Docker
+* As one of the many user space tools available, the Docker daemon interacts with the operating system's kernel to set up containers
+* From the kernel's perspective, there is no distinction between a running container and other processes -- the container is also just a process
+
+### Container engines
+* Podman -> runc
+* CRI-O -> runc
+* dockerd -> containerd -> runc
+
+### The container host 
+* It's actually the host that is the "engine" for running containers
+* The entire stack of components responsible for running containers communicates by means of the host's kernel
+* Stack components (from lowest to highest in terms of abstraction layers):
+    * operating system with its kernel
+    * container runtime (_runc_)
+    * container engine (e. g. Docker)
+    * orchestration node (Kubelet)
+* Kernel, container runtime, container engine, and things on top of the container engine must revision together and prevent regressions together -> Stack with many moving parts challenging to maintain
+
+## Container engine
+
+### Creating regular Linux processes
+* A regular Linux process is created, destroyed, and managed with system-level calls into the kernel
+* Examples:
+    * `fork()` (e. g. Apache)
+    * `exec()` (e. g. `ps`)
+    * `exit()`
+    * `kill()`
+    * `open()`
+    * `close()`
+    * `system()`
+
+### The "containerized" process
+* From the kernel's perspective, a container is a regular process
+* However, in contrast to many other processes, the process for a container is created by invoking `clone()`
+* `clone()` creates namespaces for kernel resources like mounts, users, and network resources
+* Thus, a process running inside a container process is the namespaced equivalent of the process running outside a container
+
+### Container runtime
+* Standardizes the way in which the user space communicates with the kernel
+* Needs an OCI manifest (JSON files containing various directives) and a directory in the filesystem storing the extracted contents of a container image
+* Example for a container runtime: _runc_ (popular container runtime today)
+
+### Container engine
+* Exposes API for clients (humans and other programs)
+* Handles management of container images and storage
+* Prepares all configuration and hands it to _runc_
+    * Combination of image-, user-, and engine-provided defaults
+    * Hierarchy of default configuration artifacts from highest to lowest: user -> image -> engine
+    * Things work out-of-the-box because engine provides sensible defaults
+* Examples for container engines: Docker (_dockerd_ + _container_), Podman
 
 
