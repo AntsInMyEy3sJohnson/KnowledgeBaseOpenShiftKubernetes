@@ -129,4 +129,37 @@ $ docker pull registryserver/namespace/repository:tag
     * Things work out-of-the-box because engine provides sensible defaults
 * Examples for container engines: Docker (_dockerd_ + _container_), Podman
 
+## Container orchestration with Kubernetes and OpenShift
+
+### Introduction
+Kubernetes and OpenShift fulfil two major roles:
+* Scheduling (in essence: where in the cluser to put containers, and granting access to users)
+* Expose an API
+    * API to be consumed by both human- and machine-based clients
+    * Kubernetes and OpenShift provides declarative way of describing desired application state
+
+### Defining desired state
+* Application modeled by comparing desired state with actual state
+* Kubernetes'/OpenShift's job is to continuously resolve discrepancies between the user-defined, desired state and the actual, current state as represented by containers running (or not running) in the cluster
+* The system takes action to resolve discrepancies
+* Desired state can also be defined by automation interacting with the Kubernetes/OpenShift API
+
+### Resources for modeling desired state
+* Incomplete list of resources often employed to model desired state:
+    * Deployment config (_dc_)
+    * Deployment (_deployments_)
+    * Pod (_po_)
+    * Replication controller (_rc_)
+    * Routes (_routes_)
+    * Services (_svc_)
+    * Persistent volume claim (_pvc_)
+    * Persistent volume (_pv_)
+    * Nodes (_nodes_)
+    * Image stream (_is_)
+    * Image (_images_)
+    * Build (_builds_)
+    * Build config (_bc_)
+* Those resources are virualizations built into OpenShift/Kubernetes to structure information, help reason about the system as a whole, and abstract away complexity, but they map to real-world infrastructure
+
+
 
