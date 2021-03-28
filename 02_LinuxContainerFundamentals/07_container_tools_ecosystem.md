@@ -113,7 +113,112 @@ $ buildah delete -a
 $ buildah images
 ```
 
-### Using tools outside the container
+### Making use of tools outside the container
+
+```
+# Create new container, mount image, and get copy-on-write layer:
+$ WORKING_MOUNT=$(buildah mount $(buildah from scratch))
+# Wait, that was fantastic! We started, quite literally, "from scratch"... below, 
+# a couple of very basic tools will be added (only bash and coreutils), resulting
+# in a very minimal image. The same approach can be used to create optimallzy sized images for 
+# specific use cases.
+$ echo $WORKING_MOUNT
+# Verify directory is empty:
+$ ls -alh $WORKING_MOUNT
+# Installation of basic tools:
+$ yum install --installroot $WORKING_MOUNT bash coreutils \ 
+    --releasever 8 --setopt install_weak_deps=false -y
+$ yum clean all -y --installroot $WORKING_MOUNT --releasever 8
+# Root directory of copy-on-write layer should now contain 
+# a lot of files and directories:
+$ ls -alh $WORKING_DIRECTORY
+# Commit copy-on-write layer as new image layer:
+$ buildah commit working-container minimal
+# Run the "minimal" image and verify bash is there:
+$ podman run -it minimal bash
+  bash-4.4# echo "Hello, minimal image!"
+  Hello, minimal image!
+# Perform clean-up:
+$ exit
+$ buildah delete -a
+```
+
+### Pulling in external data during the build
+
+```
+# Create a dummy file (representing some kind of large dependency that needs to 
+# be pulled in during image build time):
+$ dd if=/dev/zero of=~/data/test.bin bs=1MB count=100
+  100+0 records in
+  100+0 records out
+  100000000 bytes (100 MB, 95 MiB) copied, 0.0451312 s, 2.2 GB/s
+$ ls -alh ~/data/test.bin 
+  -rw-r--r--. 1 root root 96M Mar 28 17:12 /home/rhel/data/test.bin
+# Create working container:
+$ buildah from ubi8
+$ buildah mount ubi8-working-container
+# Simulate consuming data inside the container:
+$ buildah run -v ~/data:/data:Z ubi8-working-container \
+  dd if=/data/test.bin of=/etc/small-test.bin bs=100 count=2
+# (In the above command, the ":Z" option is used to relabel the data for 
+# SELinux, and the "dd" command simply represents consunimg the dummy file)
+# Commit copy-on-write layer and perform clean-up:
+$ buildah commit ubi8-working-container ubi8-data
+$ buildah delete -a
+```
+
+## Skopeo: moving and sharing images
+
+Skopeo: Very handy comamnd-line utility able to perform various actions on container images and remote registries
+
+### Inspect images remotely
+
+Remember: Caching an image locally means extracting it to a rootfs, which has always been a root operation. Therefore, one might want to remotely inspect the image before making the local container engine pull it down... and this is where Skopeo comes to the rescue!
+
+```
+# Remotey inspect an image
+$ skopeo inspect docker://registry.fedoraproject.org/fedora
+# This reveals some handy meta data about the given image: Besides architecture and OS 
+# information, the command also shows us the image labels consumed by most container 
+# engines to pass them to the container runtime for them to be constructed as 
+# environment variables.
+# Comparison: See meta data on running container using Podman
+$ podman run --name meta-data-container -id registry.fedoraproject.org/fedora bash
+$ podman inspect meta-data-container
+```
+
+### Pulling images
+
+```
+# Copy image to local container storage:
+$ skopeo copy docker://registry.fedoraproject.org/fedora containers-storage:fedora
+# Copy and extract image into local directory:
+$ skopeo copy docker://registry.fedoraproject.org/fedora dir:$HOME/fedora
+# Advantage: Not mapped into container storage, so image contents can be 
+# easily examined 
+```
+
+### Moving images between local container storages
+
+```
+# Copy image from Podman to Docker container storage:
+$ skopeo copy \
+  containers-storage:registry.fedoraproject.org/fedora \
+  docker-daemon:registry.fedoraproject.org/fedora:latest
+```
+
+### Moving images between container registries
+
+```
+$ skopeo copy \
+  docker://registry.fedoraproject.org/fedora \
+  docker://quay.io/fatherlinux/fedora \
+  --dest-creds fatherlinux+fedora:5R4YX2LHHVB682OX232TMFSBGFT350IV70SBLDKU46LAFIY6HEGN4OYGJ2SCD4HI
+```
+
+
+
+
 
 
 
