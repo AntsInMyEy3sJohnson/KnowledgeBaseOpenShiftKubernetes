@@ -325,7 +325,6 @@ $ oscap-podman registry.access.redhat.com/ubi8/ubi:8.0-126 \
   oval eval --report ./html/ubi-8.0-126-report.html rhel-8.oval.xml.bz2
 # Many CVEs/RHSAs shown in report -- if application run and all images built on top 
 # of this image would be vulnerable according to those CVE/RHSAs
-
 ```
 
 
