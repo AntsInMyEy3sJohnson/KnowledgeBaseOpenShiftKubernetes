@@ -216,6 +216,77 @@ $ skopeo copy \
   --dest-creds fatherlinux+fedora:5R4YX2LHHVB682OX232TMFSBGFT350IV70SBLDKU46LAFIY6HEGN4OYGJ2SCD4HI
 ```
 
+## Checkpointing and restoring with CRIU
+
+Podman can use CRIU to checkpoint and restore containers on the same host (comes in handy for containers that have a long start-up time or possess a cache of some sort that needs to be populated ("cache warming"), etc.)
+
+Lifecycle of a container from start to finish using Podman:
+podman pull - Pull the container image
+podman create - Add tracking meta-data to /var/lib/containers or .local/share/containers
+podman mount - Create a copy-on-write layer and mount the container image with a read/write layer above it
+podman init - Create a config.json file
+podman start - Run the workload by handing the config.json and root file system to runc
+Workload runs either as a batch process, or as a daemon
+podman kill - kills the process or processes in the container
+podman rm - Unmount and delete the copy-on-write layer
+podman rmi - remove the image /var/lib/containers or .local/share/containers
+
+1. `podman pull` -- Pull container image
+1. `podman create` -- Make Podman create tracking meta data to `/var/lib/containers` or `.local/share/containers`
+1. `podman mount` -- Create copy-on-write layer and mount container image with read/write layer above it
+1. `podman init` -- Make Podman create `config.json` file
+1. `podman start` -- Run workload by handing `config.json` file and rootfs to container runtime (typically `runc`)
+1. Workload runs either as daemon or as batch process
+1. `podman kill` -- Kills process(-es) within container
+1. `podman rm` -- Copy-on-write layer gets unmounted and deleted
+1. `podman rmi` -- Remove image from `/var/lib/containers` or `/.local/share/containers`
+
+Step 7 is where CRIU comes in. It enables users to break down process shutdown into a couple of fine-grained steps (steps 1 through 6 are identical to the above):
+
+7. `podman checkpoint` -- Make Podman dump memory contents to disk and kill process or processes
+7. Memory dumped to disk, workloads no longer running
+7. `podman restore` -- Restores previously dumped memory content into new processes
+7. Workload (either batch job or daemon) up and running again
+7. `podman kill` -- See above
+7. `podman rmi` -- See above
+7. `podman rmi` -- See above
+
+
+```
+# Start container that increments some numbers:
+$ podman run -d --name looper ubi8 /bin/sh -c \
+  'i=0; while true; do echo $i; i=$(expr $i + 1); sleep 1; done'
+# Verify numbers are generated:
+$ podman logs -l
+  1
+  2
+  3
+  4
+  5
+  ...
+# ("-l", "--latest": "Act on latest container Podman is aware of")
+# Dump memory contents and kill container processes:
+$ podman container checkpoint -l
+  8f9312bec0373d4bbc6215cf1084fa55496d181fdd3266005f1f9b9f1ae6f8d1
+$ podman ps -a
+  CONTAINER ID  IMAGE                                             COMMAND               CREATED         STATUS                     PORTS                 NAMES
+  8f9312bec037  registry.access.redhat.com/ubi8:latest            /bin/sh -c i=0; w...  3 minutes ago   Exited (0) 13 seconds ago                        looper
+# Note: Container is in "Exited" state, meaning it stopped running, but its
+# copy-on-write layer hasn't been deleted yet
+
+# Now, restore container with previously checkpointed memory contents:
+$ podman container restore -l
+# Numbers are now incrementing again, but not from 0, but from the latest number
+# the previous container was stopped at:
+$ podman logs -l
+# Kill container:
+$ podman kill -a
+# (Will kill process(-es), delete all contents in copy-on-write-layer, 
+# and remove all meta data for all containers)
+```
+
+
+
 
 
 
