@@ -221,15 +221,6 @@ $ skopeo copy \
 Podman can use CRIU to checkpoint and restore containers on the same host (comes in handy for containers that have a long start-up time or possess a cache of some sort that needs to be populated ("cache warming"), etc.)
 
 Lifecycle of a container from start to finish using Podman:
-podman pull - Pull the container image
-podman create - Add tracking meta-data to /var/lib/containers or .local/share/containers
-podman mount - Create a copy-on-write layer and mount the container image with a read/write layer above it
-podman init - Create a config.json file
-podman start - Run the workload by handing the config.json and root file system to runc
-Workload runs either as a batch process, or as a daemon
-podman kill - kills the process or processes in the container
-podman rm - Unmount and delete the copy-on-write layer
-podman rmi - remove the image /var/lib/containers or .local/share/containers
 
 1. `podman pull` -- Pull container image
 1. `podman create` -- Make Podman create tracking meta data to `/var/lib/containers` or `.local/share/containers`
@@ -284,6 +275,43 @@ $ podman kill -a
 # (Will kill process(-es), delete all contents in copy-on-write-layer, 
 # and remove all meta data for all containers)
 ```
+
+## Custom SELinux policies made easy with Udica
+
+* Use case: SELinux blocks a container's process, so the container doesn't start. 
+* Problem: How to run container anyway without (a) simply disabling SELinux, or (b) becoming an SELinux expert?
+* Solution: Udica!
+
+```
+# Example for container that will not run out of the box with SELinux enabled:
+$ podman run --name home-test -v /home/:/home:ro -it ubi8 ls -al /home
+# This command tries to mount the "/home" directory as read-only into the container, 
+# which SELinux, by default, does not allow
+# Udica can be used to set up a custom SELinux rule quickly and easily
+
+# Extract container metadata:
+$ podman inspect home-test > home-test.json
+
+# Udica can read this file and create a custom SELinux policy for us:
+udica -j home-test.json home_test
+# Load new policy into SELinux:
+$ semodule -i home_test.cil /usr/share/udica/templates/{base_container.cil,home_container.cil}
+
+# To make SELinux allow the read-only mount of the "/home" directory, we have use an 
+# option telling it to label the container process for it to use the newly created policy:
+$ podman run --name home-test-2 --security-opt \
+  label=type:home_test.process -v /home/:/home:ro \
+  -id ubi8 bash
+# Execute "ls" command home directory:
+$ podman exec -it home-test-2 ls /home
+# Viewing the process table, we can see the process runs with the "home_test.process" 
+# SELinux policy:
+$ ps -efZ | grep home_test
+# Verify there is, in fact, a new rule in this SELinux policy:
+$ sesearch -A -s home_test.process -t home_root_t -c dir -p read
+```
+
+
 
 
 
