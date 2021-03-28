@@ -311,6 +311,24 @@ $ ps -efZ | grep home_test
 $ sesearch -A -s home_test.process -t home_root_t -c dir -p read
 ```
 
+## OSCAP: Trust is good, verification is better
+
+* _OVAL_: "Open Vulnerability and Assessment Language" projecdt
+* Maintains machine-readable catalog containing security advisories
+* OVAL-compatible tools can utilize that data to, for example, scan images for unpatched CVEs
+
+```
+# Download latest OVAL data:
+$ wget https://www.redhat.com/security/data/oval/v2/RHEL8/rhel-8.oval.xml.bz2
+# Create report for specific image:
+$ oscap-podman registry.access.redhat.com/ubi8/ubi:8.0-126 \
+  oval eval --report ./html/ubi-8.0-126-report.html rhel-8.oval.xml.bz2
+# Many CVEs/RHSAs shown in report -- if application run and all images built on top 
+# of this image would be vulnerable according to those CVE/RHSAs
+
+```
+
+
 
 
 
