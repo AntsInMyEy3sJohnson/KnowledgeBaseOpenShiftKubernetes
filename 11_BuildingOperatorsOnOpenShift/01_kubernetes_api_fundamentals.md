@@ -184,4 +184,68 @@ curl  -X PUT localhost:8001/apis/apps/v1/namespaces/myproject/replicasets/myfirs
 $ curl -XGET localhost:8001/apis/apps/v1/namespaces/myproject/replicasets/myfirstreplicaset/status
 ```
 
+## Custom Resource Definitions
+
+```
+# Create manifest file for Postgres Custom Resource Definition:
+cat > postgres-custom-resource-definition.yaml <<EOF
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: postgres.rd.example.com
+spec:
+  group: rd.example.com
+  names:
+    kind: Postgres
+    listKind: PostgresList
+    singular: postgres
+    plural: postgreses
+    shortNames:
+      - pg
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+      served: true
+      storage: true
+EOF
+
+# Apply manifest file to create Custom Resource Definition (CRD) object:
+$ oc create -a postgres-custom-resource-definition.yaml
+
+# Result: The Kubernetes API will now list a new API group called 'rd.example.com':
+$ curl -XGET localhost:8001/apis | jq .groups[].name | grep example
+  "rd.example.com"
+# (Also reflected in the 'oc api-versions' command)
+
+# Using the Kubernetes API, we can explore the API versions within the new API group. 
+# Unsurprisingly, the 'postgres' resource will be displayed.
+$ curl -XGET localhost:8001/apis/rd.example.com/v1alpha1 | jq
+
+# With the new 'postgres' resource type in place, the oc client recognizes it as such:
+$ oc get postgres
+$ oc get pg
+
+# Make use of new Custom Resource Definition and create Postgres manifest file:
+$ cat > my-wordpress-database.yaml <<EOF
+apiVersion: "rd.example.com/v1alpha1"
+kind: Postgres
+metadata:
+  name: wordpressdb
+spec:
+  user: postgres
+  password: postgres
+  database: mytestdb
+  nodes: 5
+EOF
+
+# This manifest file can now be used to create a Postgres object:
+$ oc create -f my-wordpress-database.yaml
+$ oc get postgres
+$ oc get pg wordpressdb -o yaml
+```
+
 
