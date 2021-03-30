@@ -105,3 +105,83 @@ $ curl -XGET localhost:8001/api/v1/namespaces/myproject/pods/my-two-container-po
 
 ## Replica sets
 
+```
+# List all pods within current namespace:
+$ oc get po -n myproject
+
+# Create manifest file for ReplicaSet object:
+$ cat > my-replica-set.yaml <<EOF
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: myfirstreplicaset
+  namespace: myproject
+spec:
+  selector:
+    matchLabels:
+      app: myfirstapp
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: myfirstapp
+    spec:
+      containers:
+        - name: nodejs
+          containers: openshiftkatacoda/blog-django-py
+EOF
+
+# Apply manifest file to create ReplicaSet:
+$ oc create -f my-first-replica-set.yaml
+
+# View pods:
+$ oc get po -l app=myfirstapp --show-labels -w
+  NAME                      READY   STATUS    RESTARTS   AGE   LABELS
+  myfirstreplicaset-4bvfd   1/1     Running   0          61s   app=myfirstapp
+  myfirstreplicaset-d6dvt   1/1     Running   0          61s   app=myfirstapp
+  myfirstreplicaset-g8cn7   1/1     Running   0          61s   app=myfirstapp
+
+# The ReplicaSet will make sure the number of pods will match the number 
+# specified in the manifest. In this case, 'replicas' was set to 3, so the 
+# ReplicaSet object will make sure there's always exactly 3 pods running.
+# One can verify this by deleting some pods and watching new ones spawn:
+$ oc delete po -l app=myfirstapp
+
+# Rescale ReplicaSet (i. e., increase or decrease number of running pods):
+$ oc scale rs/myfirstreplicaset --replicas=6
+$ oc scale rs/myfirstreplicaset --replicas=3
+
+# Behind the curtains, the 'oc scale' command interacts with the '/scale' 
+# endpoint on behalf of the user. Therefore, we can also use that endpoint to 
+# to interact with the ReplicaSet (for the commands against 'localhost:8001' to 
+# reach the Kubernetes API, the 'oc proxy' command needs to be running):
+$ curl -XGET localhost:8001/apis/apps/v1/namespaces/myproject/replicasets/myfirstreplicaset/scale
+  {
+    "kind": "Scale",
+    "apiVersion": "autoscaling/v1",
+    "metadata": {
+      "name": "myfirstreplicaset",
+      "namespace": "myproject",
+      "selfLink": "/apis/apps/v1/namespaces/myproject/replicasets/myfirstreplicaset/scale",
+      "uid": "ebc7f036-5d35-43dd-b4ff-7933304c821a",
+      "resourceVersion": "310991",
+      "creationTimestamp": "2021-03-30T18:46:28Z"
+    },
+    "spec": {
+      "replicas": 2
+    },
+    "status": {
+      "replicas": 2,
+      "selector": "app=myfirstapp"
+    }
+  }
+
+# PUT can be used to rescale the ReplicaSet:
+curl  -X PUT localhost:8001/apis/apps/v1/namespaces/myproject/replicasets/myfirstreplicaset/scale \
+  -H "Content-type: application/json" -d '{"kind":"Scale","apiVersion":"autoscaling/v1","metadata":{"name":"myfirstreplicaset","namespace":"myproject"},"spec":{"replicas":5}}'
+
+# View status of ReplicaSet:
+$ curl -XGET localhost:8001/apis/apps/v1/namespaces/myproject/replicasets/myfirstreplicaset/status
+```
+
+
