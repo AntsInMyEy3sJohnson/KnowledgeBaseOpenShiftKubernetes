@@ -165,4 +165,89 @@ $ oc get po
 $ export ETCD_OPERATOR_POD=$(oc get po -l name=etcd-operator \
     -o jsonpath='{.items[0].metadata.name}')
 $ oc logs $ETCD_OPERATOR_POD -f
+$ oc get endpoints etcd-operator -o yaml
 ```
+
+## Etcd Cluster Custom Resource
+
+Etcd operator now rolled out, now make use of previously (in the Custom Resource Definition) defined Custom Resource (`EtcdCluster`) to create an Etcd cluster:
+
+```
+$ oc project myproject
+$ cat > etcd-operator-custom-resource.yaml <<EOF
+apiVersion: etcd.database.coreos.com/v1beta2
+kind: EtcdCluster
+metadata:
+  name: example-etcd-cluster
+spec: 
+  size: 3
+  version: 3.1.10
+EOF
+$ oc create -f etcd-operator-custom-resource.yaml
+
+# Remember: We've set this up as a custom resource, so the Kubernetes API knows about this 
+# resource type. This means we can query it like any other resource type.
+$ oc get etcdcluster
+# Watch pods get created:
+oc get po -l etcd_cluster=example-etcd-cluster -w
+
+# Verify cluster has been exposed via a ClusterIP service:
+$ oc get services -l etcd_cluster=example-etcd-cluster
+  NAME                          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)             AGE
+  example-etcd-cluster          ClusterIP   None            <none>        2379/TCP,2380/TCP   2m30s
+  example-etcd-cluster-client   ClusterIP   172.25.95.243   <none>        2379/TCP            2m31s
+```
+
+## Interacting with a live Etcd cluster
+
+Let's try to interact with the Etcd cluster from within a Pod that has the Etcd client installed.
+
+```
+$ oc run myetcdclient --image=busybox busybox --restart=Never -- /usr/bin/tail -f /dev/null
+$ oc get po -w
+$ oc rsh myetcdclient
+# Install Etcd client
+$ wget https://github.com/coreos/etcd/releases/download/v3.1.4/etcd-v3.1.4-linux-amd64.tar.gz
+$ tar -xvf etcd-v3.1.4-linux-amd64.tar.gz
+$ cp etcd-v3.1.4-linux-amd64/etcdctl .
+
+# Set environment variables for Etcd version and cluster endpoint:
+$ export ETCDCTL_API=3
+$ export ETCDCTL_ENDPOINTS=example-etcd-cluster-client:2379
+
+# Write key-value pair to Etcd cluster:
+$ ./etcdctl put operator sdk
+$ ./etcdctl get operator
+
+# Leave client Pod
+$ exit
+```
+
+## Making use of the operator: scaling the cluster, updating Etcd version
+
+The Etcd operator installed previously is able to detected many events describing changes made to the `EtcdCluster` Custom Resource. Among those events are scaling the cluster and modifying the Etcd version used.
+
+```
+# Scale cluster up:
+$ oc patch etcdcluster example-etcd-cluster --type='json' -p '[{"op": "replace", "path": "/spec/size", "value":5}]'
+  etcdcluster.etcd.database.coreos.com/example-etcd-cluster patched
+# Here, the Etcd operator will detect the 'spec.size' field change in the Etcd cluster custom resource 
+# and modify the number of Pods accordingly.
+
+# Change version of Etcd cluser:
+$ oc patch etcdcluster example-etcd-cluster --type='json' -p \
+  '[{"op": "replace", "path": "/spec/version", "value":3.2.13}]'
+  etcdcluster.etcd.database.coreos.com/example-etcd-cluster patched
+# The Etcd operator will detect the modification made to the 'spec.size' field and 
+# create a new cluster with the newly defined image.
+```
+
+## Clean-up work
+
+```
+$ oc delete etcdcluster example-etcd-cluster
+$ oc delete deployment etcd-operator
+$ oc delete crd ectdclusters.etcd.database.coreos.com
+```
+
+
