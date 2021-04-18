@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: myapp
+        image: gophernet/netcat
+        command: ["/bin/sh", "-c"]
+        args: ["while true; do echo -e \"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\nHello, I am a sample text!\" | nc -l -p 8081; done"]
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 8081
+

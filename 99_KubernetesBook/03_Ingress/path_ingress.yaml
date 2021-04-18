@@ -1,0 +1,20 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: my-path-ingress
+  labels:
+      name: my-path-ingress
+spec:
+  rules:
+  - host: bandicoot.example.org
+    http:
+      paths:
+      - path: "/"
+        backend:
+          serviceName: backend2
+          servicePort: 8081
+      - path: "/a/"
+        backend:
+          serviceName: backend1
+          servicePort: 8081
+

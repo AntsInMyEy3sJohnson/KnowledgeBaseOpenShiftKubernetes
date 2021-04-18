@@ -1,0 +1,10 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: my-simple-ingress
+  labels:
+      name: my-simple-ingress
+spec:
+  backend:
+    serviceName: backend1
+    servicePort: 8081
