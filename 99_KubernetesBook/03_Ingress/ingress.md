@@ -189,6 +189,74 @@ spec:
 * Caution: A request containing, for example, `/a`, will show up to the upstream server precisely like this, so the application this requests is directed to based on the Ingress rule needs to be able to serve a request on this particular subpath
 
 
+## Advanded usecases and pitfalls to be aware of
+
+* Ingress supports more features than what was outlined above, but...
+* ... different Ingress controllers may implement them slightly differently, so caution is advised
+
+### Multiple Ingress controllers
+
+* Usecase: Specify multiple Ingress objects on the same cluster
+* To tell Kubernetes which Ingress controller to use for which Ingress object, the `kubernetes.io/ingress.class` annotation can be employed on the latter
+* Caution: To successfully link an Ingress object to the desired controller, the controller itself must also carry the `kubernetes.io/ingress.class` string, and controller and object must contain the same string value for the annotation
+* Once an Ingress controller carries the `kubernetes.io/ingress.class` annotation, it will only consider Ingress objects carrying the same value for the annotation
+* If multiple controllers are specified, the `kubernetes.io/ingress.class` annotation should be used -- if it's missing on an Ingress object, multiple controllers "fighting" to control the object will likely cause undesired behavior
+
+### Multiple Ingress objects
+
+* If multiple Ingress objects are specified, the Ingress controller will read them all and try to merge them into a single configuration, but...
+* ... this is only possible of the Ingress objects don't contain duplicate or conflicting configurations
+
+### Namespace-related rules and behavior
+
+* Ingress objects can only refer to upstream services within the same namespace -- an Ingress object cannot be configured to point a subpath to a service located in some other namespace
+* On the other hand, mulitple Ingress objects located in different namespaces can specify rules for the same host, which the Ingress controller reads and tries to merge into a single configuration, which...
+* ... again won't work as desired in the face of duplicate or conflicting configurations
+* Therefore, coordinating Ingress should happen across the entire cluster, and one should exercise caution as one configuration could cause problems or a deviation from desired behavior in some other namespace
+* This cross-namespace behavior might change as Ingress evolves as the currently implemented behavior -- merging Ingress objects defined across namespaces -- conflicts with the idea of namespace isolation
+
+### Rewriting of paths
+
+* Path rewriting: Modify path in the HTTP request as it gets proxied
+* Supported only by some Ingress controllers
+* Behavior can be configured using annotation if supported. Example on Nginx Ingress controller: `nginx.ingress.kubernetes.io/rewrite-target: /`
+* Useful for supplying upstream services with a URL they were built to work on
+
+### Serving TLS
+
+* Supported by the Ingress object and most Ingress controllers
+* Once certificate details (contents from `.crt` and `.key` files) have been uploaded to Kubernetes within a Secret, the Secret can be referenced from an Ingress object
+* Ingress object specifies name of the Secret containing the certificate data along with hosts this certificate data should be used for
+* Caution: Host names specified in `tls` section must exactly match the hosts appearing in the `rules` section
+
+```
+cat <<EOF | kubectl apply -f -
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: my-tls-ingress
+  labels:
+    name: my-tls-ingress
+spec:
+  tls:
+    - secretName: my-example-certificate
+      hosts:
+      - alpaca.example.org
+    - secretName: my-test-certiticate
+      hosts:
+      - something.test.org
+  rules:
+  - host: something.test.org
+    http:
+      paths:
+        - backend:
+            serviceName: something
+            servicePort: 8080
+```
+
+* Use _cert-manager_ to manage certificates for Ingress objects on Kubernetes
+
+
 
 
 
