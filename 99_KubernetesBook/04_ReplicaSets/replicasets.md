@@ -12,4 +12,3 @@
 
 * Basic idea: desired state vs. actual state
 * "Desired state" in case of ReplicaSet: desired number of replicas + definition of Pod to be replicated
-* 
