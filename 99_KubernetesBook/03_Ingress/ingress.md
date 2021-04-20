@@ -133,6 +133,7 @@ spec:
   backend:
     serviceName: backend1
     servicePort: 8081
+EOF
 
 $ k get ingress 
 $ k describe my-simple-ingress
@@ -158,6 +159,7 @@ spec:
       - backend:
           serviceName: backend1
           servicePort: 8081
+EOF
 ```
 
 ### Using paths
@@ -183,6 +185,7 @@ spec:
         backend:
           serviceName: backend1
           servicePort: 8081
+EOF
 ```
 
 * Pattern shown above -- using multiple paths on the same domain -- can be used to direct traffic to different upstream services on different paths of that domain
@@ -230,7 +233,7 @@ spec:
 * Caution: Host names specified in `tls` section must exactly match the hosts appearing in the `rules` section
 
 ```
-cat <<EOF | kubectl apply -f -
+$ cat <<EOF | kubectl apply -f -
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
@@ -252,6 +255,7 @@ spec:
         - backend:
             serviceName: something
             servicePort: 8080
+EOF
 ```
 
 * Use _cert-manager_ to manage certificates for Ingress objects on Kubernetes
