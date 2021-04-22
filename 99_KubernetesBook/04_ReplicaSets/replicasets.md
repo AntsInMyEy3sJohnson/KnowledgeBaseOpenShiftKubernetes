@@ -64,7 +64,6 @@ spec:
 
 ## ReplicaSet creation
 
-
 ```
 # Sample manifest to create a ReplicaSet
 $ cat <<EOF | kubectl apply -f -

@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: awesome-namespace
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: awesome-deployment
+  namespace: awesome-namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-service
+  template:
+    metadata:
+      labels:
+        app: hello-service
+    spec: 
+      containers:
+      - name: hello-service-container
+        image: antsinmyey3sjohnson/hello-container-service:1.0
+        ports:
+        - containerPort: 8081
+          protocol: TCP
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "300m"
+            memory: "512Mi"
+    
+      
+    
