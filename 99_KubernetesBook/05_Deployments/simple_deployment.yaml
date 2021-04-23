@@ -9,14 +9,22 @@ metadata:
   name: awesome-deployment
   namespace: awesome-namespace
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: hello-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 50%
   template:
     metadata:
       labels:
         app: hello-service
+      annotations:
+        example.org/deployment-version: "1.1"
+        kubernetes.io/change-cause: "Meaningful information about the change cause goes here"
     spec: 
       containers:
       - name: hello-service-container
@@ -31,6 +39,17 @@ spec:
           limits:
             cpu: "300m"
             memory: "512Mi"
+      - name: tools
+        image: registry.access.redhat.com/rhel7/rhel-tools:latest
+        command:
+          - "/bin/sh"
+          - "-c"
+        args:
+          - "tail -f /dev/null"
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
     
       
     
