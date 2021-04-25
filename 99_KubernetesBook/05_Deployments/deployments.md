@@ -188,6 +188,35 @@ $ k -n awesome-namespace rollout undo deployments awesome-deployment --to-revisi
 
 * Slower than `Recreate`, but still preferable in most scenarios because it is able to upgrade a service without incuring downtime
 * The strategy works by updating a few Pods at a time (depending on how the strategy is configured in the Deployment object) until all Pods have been updated and serve the new application version
+* Caution: `RollingUpdate` means that -- unless its configuration mimics the behavior of the `Recreate` strategy -- two versions of the same application are served simultaneously, so version backward and forward compatibility must be built into the application
+* Two parameters to configure the behavior of the `RollingUpdate` strategy: `maxUnavailable` and `maxSurge`
+  * `maxUnavailable`
+    * Configures maximum number of Pods that can be unavailable during a rolling update
+    * Can be either a percentage or an absolute number 
+    * Parameter as good example how application availability can be trated for update speed: With `maxUnavailable=50%`, the rollout will be performed in four steps (old ReplicaSet scaled down to 50 %, new ReplicaSet brought up with 50 %, old ReplicaSet scaled down to 0 %, new ReplicaSet brought up by remaining 50 %), and with `maxUnavailable=25%`, twice as many steps have to be performed, but service availability only drops to 75 %
+    * The `RollinggUpdate` strategy with `maxUnavailable=100%` is equivalent to the `Recreate` strategy
+  * `maxSurge`
+    * More appropriate where service availability has to remain at 100 % during the update, but it is acceptable to use additional resources to roll out the new version
+    * The `maxSurge` parameter specifies how many further resources can be used in scope of the rollout (either as absolute number or percentage)
+    * Example: Service with 10 repplicas and `maxSurge=50%` means the new ReplicaSet is first scaled up to five replicas (corresponding to the additional 50 % resources so the deployment now amounts to 150 % resource usage), then the old ReplicaSet is scaled by 50 % (so in total going back to 100 %), new +50 (--> 150% again), old -50 down to 0 --> deployment resource usage 100 %, rollout finished
+    * Note: `maxSurge=100%` is equivalent to a blue-green deployment
+
+
+### Ensure service health by slowing down rollouts
+
+* Deployment controller always waits until all Pods in the batch of last updates Pods report readiness before moving on to the next batch 
+* Because the deployment controller depends on the Pod's readiness checks to determine readiness, the behavior described above only works correctly if proper readiness checks have been provided for the Pods in question
+* In cases where a simple check for readiness is not sufficient, the deployment controller can be configured to make sure a Pod reports readiness for a certain amount of time using the `minReadySeconds` parameter in the Deployment's `spec` section
+* Example: `minReadySeconds=30` means a Pod has to remain healthy for 30 seconds for the deployment controller to move on
+* Another important parameter is `progressDeadlineSeconds`, which acts as a timer for how long the deployment controller tolerates a stalled rollout step before timing out the entire rollout -- in the absence of such a timeout, if, for example, a Pod never becomes ready due to a bug in the application it runs, the deployment will never proceed and just hang indefinitely
+* Note that the timer set by `progressDeadlineSeconds` applies to one stage in the rollout process, not the entire rollout -- if a rollout proceeds to the next step, the timer will be reset
+
+## Deployment monitoring
+
+* A timed-out rollout will be markes as failed
+* Each Deployment carries a `state.conditions` array, and a `Condition` of `Type=Progressing` and `Status=False` indicates the Deployment has failed
+
+
 
 
 
