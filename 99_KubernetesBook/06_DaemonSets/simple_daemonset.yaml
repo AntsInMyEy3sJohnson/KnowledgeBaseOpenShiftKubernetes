@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: my-awesome-daemonset-testing-namespace
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: my-awesome-daemonset
+  namespace: my-awesome-daemonset-testing-namespace
+  labels:
+    app: my-awesome-daemonset
+spec:
+  selector:
+    matchLabels:
+      app: my-awesome-daemonset
+  template:
+    metadata:
+      labels:
+        app: my-awesome-daemonset
+    spec:
+      containers:
+      - name: my-logging-service
+        image: registry.access.redhat.com/rhel7/rhel-tools
+        command:
+          - "/bin/bash"
+          - "-c"
+        args:
+          - "while true; do echo \"I do very important logging things on this node!\"; sleep 5; done"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "200m"
+            memory: "512Mi"
