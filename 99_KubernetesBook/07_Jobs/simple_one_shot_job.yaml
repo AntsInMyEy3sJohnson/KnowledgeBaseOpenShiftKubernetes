@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: job-exploring-namespace
+---
+# One shot-job to calculate Pi to 2000 places
+# See: https://kubernetes.io/docs/concepts/workloads/controllers/job/
+apiVersion: batch/v1
+kind: Job
+metadata: 
+  name: calculate-pi-job
+  namespace: job-exploring-namespace
+spec:
+  template:
+    spec:
+      containers:
+      - name: pi-calculator
+        image: perl
+        command: ["perl", "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+      restartPolicy: Never
+  backoffLimit: 4
