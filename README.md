@@ -1,2 +1,2 @@
-# OpenShiftLearning
-Notes, examples and best practices on OpenShift (and, occasionally, some plain Kubernetes, too).
+# Knowledge Base For OpenShift And Kubernetes
+Collection of concepts, notes, examples, and best practices for OpenShift and Kubernetes.
