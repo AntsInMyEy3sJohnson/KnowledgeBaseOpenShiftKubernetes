@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: statefulset-demo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace: statefulset-demo
+  labels:
+    app: nginx
+spec:
+  # Note that 'clusterIP: None' means a so-called "headless" Service will be created
+  # A Service is referred to as "headless" if it's not assigned a cluster virtual IP address
+  # A headless Service will not receive a single Service IP, and no load-balancing will 
+  # be performed across the Service's endpoints
+  # If the Service defines a selector (like the one below), then the endpoints controller
+  # will create Endpoint records in the Kubernetes API, and it will modify the DNS 
+  # configuration to return A records (IP addresses) that point directly to the Pods 
+  # backing the Service
+  clusterIP: None
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    name: web
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx-statefulset
+  namespace: statefulset-demo
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  # From the docs (k explain statefulset.spec.serviceName):
+  # serviceName is the name of the service that governs this StatefulSet. This
+  # service must exist before the StatefulSet, and is responsible for the
+  # network identity of the set. (...)
+  serviceName: "nginx"
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: nginx
+        image: k8s.gcr.io/nginx-slim:0.8
+        ports:
+        - name: web
+          containerPort: 80
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+  # Note: By means of a VolumeClaimTemplate, each Pod spawned this StatefulSet
+  # will get its own PVC, and, thus, its own volume. If the Pods are supposed
+  # to write to a shared volume, then a regular Deployment with a manually created
+  # PVC can be used, and all of the Deployment's Pods will then use the same PVC
+  # and therefore access the same PV
+  volumeClaimTemplates:
+  - metadata:
+      name: www
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi

@@ -242,14 +242,19 @@ spec:
 * Once the Pod is gone, the Volume will be deleted as well
 * If this behavior is not desired, use `Retain` instead (`Recycle` available, too, but deprecated)
 
+## StatefulSets
 
+### Introduction
 
+* Just like ReplicaSets, StatefulSets represent replicated groups of Pods
+* What separates StatefulSets from ReplicaSets is that the former's replicas have a couple of unique properties:
+  * A unique hostname is assigned for each hostname (i. e., db-01, db-02, ...)
+  * Replicas are created individually from lowest to highest number (i. e., from 0 to _n(replicas) -1_)
+  * Creation of each next replica will block until the previous replica reports it is up and healthy (i. e., db-02 will only be created once db-01 is ready) -- applies to both StatefulSet creation and upscaling
+  * StatefulSet deletiono or downscaling also entails ordered replica deletion in reverse order of their creation, i. e., from highest to lowest
+* This ordering, while simple, has a very important benefit: All replicas created after the first one can rely on that first replica for discovery or other cluster setup tasks
 
+### Sample StatefulSet for Nginx
 
+For a sample manifest containing a StatefulSet together with its service and a namespace to encapsulate both, see the YAML file.
 
-
-  
-
-
-
-    
