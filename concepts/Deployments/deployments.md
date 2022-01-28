@@ -213,10 +213,15 @@ $ k -n awesome-namespace rollout undo deployments awesome-deployment --to-revisi
 
 ## Deployment monitoring
 
-* A timed-out rollout will be markes as failed
+* A timed-out rollout will be marked as failed
 * Each Deployment carries a `state.conditions` array, and a `Condition` of `Type=Progressing` and `Status=False` indicates the Deployment has failed
 
 
+## Extracting information from Deployment Pods via JsonPath
+
+```bash
+$ kubectl -n <my-namespace> get po -o jsonpath='{.items[*].spec.containers[0].image}'
+```
 
 
 
